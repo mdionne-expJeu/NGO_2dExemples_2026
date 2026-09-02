@@ -1,10 +1,62 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Unity.Netcode;
 
-public class DeplacementGrenouille : MonoBehaviour
+public class DeplacementGrenouille : NetworkBehaviour
 {
     [Header("Réglages du déplacement")]
     [SerializeField] private float jumpDistance = 1.0f; // Distance de chaque bond (unité Unity)
+    [SerializeField] private SpriteRenderer spriteRenderer;
+    [SerializeField] private Vector2 posDepartClient;
+    [SerializeField] private Vector2 posDepartServeur;
+
+    // Synchronise la couleur sur tout le réseau(lecture pour tous, écriture serveur uniquement)
+    private NetworkVariable<Color> playerColor = new NetworkVariable<Color>(Color.white);
+
+    public override void OnNetworkSpawn()
+    {
+        base.OnNetworkSpawn();
+
+        // Écouter les changements de couleur sur tous les clients
+        playerColor.OnValueChanged += OnChangeCouleur;
+
+        // Appliquer la couleur actuelle lors du spawn
+        spriteRenderer.color = playerColor.Value;
+
+        // Seul le SERVEUR gère le placement initial et l'attribution des couleurs
+        if (IsServer)
+        {
+            SetupPlayer();
+        }
+    }
+    public override void OnNetworkDespawn()
+    {
+        base.OnNetworkDespawn();
+
+        playerColor.OnValueChanged -= OnChangeCouleur;
+
+        // Appliquer la couleur actuelle lors du spawn
+        spriteRenderer.color = playerColor.Value;
+    }
+
+    private void OnChangeCouleur(Color ancienneCouleur, Color nouvelleCouleur)
+    {
+        spriteRenderer.color = nouvelleCouleur;
+    }
+
+    private void SetupPlayer()
+    {
+        // On détermine si c'est le joueur 1 (Host/Premier arrivé) ou le joueur 2
+        // OwnerClientId == 0 est généralement le Host / premier joueur
+        bool isFirstPlayer = OwnerClientId == 0;
+
+        // 1. Positionnement côté serveur
+        transform.position = isFirstPlayer ? posDepartServeur : posDepartClient;
+
+        // 2. Attribution de la couleur côté serveur (sera répliquée chez tout le monde)
+        playerColor.Value = isFirstPlayer ? Color.green : Color.red;
+    }
+
 
     public void OnMove(InputValue value)
     {
