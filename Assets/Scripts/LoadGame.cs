@@ -22,7 +22,7 @@ public class LoadGame : MonoBehaviour
    }
    void Start()
    {
-       SceneManager.LoadScene("JeuMulti");
+       SceneManager.LoadScene("JeuGrenouilles");
    }
 
 }

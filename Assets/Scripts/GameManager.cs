@@ -53,7 +53,7 @@ public class GameManager : NetworkBehaviour //pour un network object
    public void NouvellePartie()
    {
        partieEnCours = true;
-       BalleRigid.instance.LanceBalleMilieu();
+       //BalleRigid.instance.LanceBalleMilieu();
    }
 
   // Fonction appelée par le ScoreManager pour terminer la partie (nous l'utilserons plus tard)
