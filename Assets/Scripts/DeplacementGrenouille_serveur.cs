@@ -12,6 +12,7 @@ public class DeplacementGrenouille_serveur : NetworkBehaviour
     [SerializeField] private Vector3 posDepartServeur = new Vector3(-2, 0, 0);
     [SerializeField] private Vector3 posDepartClient = new Vector3(2, 0, 0);
 
+    private PlayerInput playerInput;
     // Variable réseau pour synchroniser la couleur auprès de tous les clients
     private readonly NetworkVariable<Color> playerColor = new NetworkVariable<Color>(
         Color.white,
@@ -23,6 +24,8 @@ public class DeplacementGrenouille_serveur : NetworkBehaviour
     {
         if (spriteRenderer == null)
             spriteRenderer = GetComponent<SpriteRenderer>();
+
+        playerInput = GetComponent<PlayerInput>();
     }
 
     public override void OnNetworkSpawn()
@@ -37,6 +40,26 @@ public class DeplacementGrenouille_serveur : NetworkBehaviour
         if (IsServer)
         {
             SetupPlayer();
+        }
+        gameObject.name = OwnerClientId.ToString();
+
+        if (IsOwner)
+        {
+            // Active le composant et s'assure qu'il écoute les périphériques globaux
+            if (playerInput != null)
+            {
+                playerInput.enabled = true;
+                // Force l'Input System à associer le clavier/souris à ce PlayerInput sur le client
+                playerInput.SwitchCurrentControlScheme(Keyboard.current);
+            }
+        }
+        else
+        {
+            // Désactive les entrées pour les joueurs distants
+            if (playerInput != null)
+            {
+                playerInput.enabled = false;
+            }
         }
     }
 
@@ -64,9 +87,11 @@ public class DeplacementGrenouille_serveur : NetworkBehaviour
 
     public void OnMove(InputValue value)
     {
+        Debug.Log($"OnMove appelé sur {gameObject.name} (NetworkId: {NetworkObjectId}) | IsOwner: {IsOwner}");
+        Debug.Log("isOwner : " + IsOwner);
         // Seul le propriétaire de cette grenouille capte ses propres entrées clavier/manette
         if (!IsOwner) return;
-
+        Debug.Log("move");
         Vector2 inputVector = value.Get<Vector2>();
         if (inputVector == Vector2.zero) return;
 
@@ -80,7 +105,7 @@ public class DeplacementGrenouille_serveur : NetworkBehaviour
         {
             moveDirection = new Vector2(0, Mathf.Sign(inputVector.y));
         }
-
+        Debug.Log("sendRPC");
         // Demande au serveur d'exécuter le saut
         MoveServerRpc(moveDirection);
     }
