@@ -11,7 +11,7 @@ public class MouchesSpawner : NetworkBehaviour
     [SerializeField] int limitePosY = 4;
     private Coroutine spawnBonus_Coroutine; // Référence à une coroutine
 
-    [SerializeField] private List<Vector2Int> positionsOccupees = new List<Vector2Int>();
+    [SerializeField] private List<Vector2> positionsOccupees = new List<Vector2>();
 
     void Awake()
     {
@@ -69,12 +69,12 @@ public class MouchesSpawner : NetworkBehaviour
     {
         while (true)
         {
-            float attente = Random.Range(1f, 2f);
+            float attente = Random.Range(1f, 5f);
             yield return new WaitForSeconds(attente);
 
             int mouchePosX = ValeurPaireAlea(limitePosX);
             int mouchePosy = ValeurPaireAlea(limitePosY);
-            Vector2Int nouvellePosition = new Vector2Int(mouchePosX, mouchePosy);
+            Vector2 nouvellePosition = new Vector2(mouchePosX, mouchePosy);
 
             if (positionsOccupees.Contains(nouvellePosition))
             {
@@ -83,12 +83,23 @@ public class MouchesSpawner : NetworkBehaviour
             else
             {
                 GameObject nouvelleMouche = Instantiate(mouchePrefab);
-                nouvelleMouche.transform.position = new Vector2(nouvellePosition.x, nouvellePosition.y);
+                nouvelleMouche.transform.position = nouvellePosition;
                 nouvelleMouche.GetComponent<NetworkObject>().Spawn();
                 positionsOccupees.Add(nouvellePosition);
             }
 
 
+        }
+    }
+
+    public void RetireListePos(Vector2 posAretire)
+    {
+        //Debug.Log("Il y a " + positionsOccupees.Count + " éléments dans la liste");
+        //Debug.Log(posAretire);
+        if (positionsOccupees.Contains(posAretire))
+        {
+            positionsOccupees.Remove(posAretire);
+            //Debug.Log("Il y a " + positionsOccupees.Count + " éléments dans la liste");
         }
     }
 

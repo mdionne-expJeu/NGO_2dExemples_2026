@@ -121,4 +121,27 @@ public class DeplacementGrenouille_serveur : NetworkBehaviour
         // 2. Application du déplacement (Le serveur modifie le Transform)
         transform.position += (Vector3)direction * jumpDistance;
     }
+
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        if (!IsServer) return;
+
+        //Debug.Log("Trigger détecté côté serveur !");
+
+        if (collision.CompareTag("mouche"))
+        {
+            // Si la mouche est un NetworkObject, désaffichez-la ou despawnez-la via le réseau
+            NetworkObject netObj = collision.GetComponent<NetworkObject>();
+            if (netObj != null)
+            {
+                //Debug.Log("despawn de la mouche");
+                MouchesSpawner.instance.RetireListePos(collision.gameObject.transform.position);
+                netObj.Despawn(); // Approche recommandée en réseau
+            }
+            else
+            {
+                collision.gameObject.SetActive(false);
+            }
+        }
+    }
 }

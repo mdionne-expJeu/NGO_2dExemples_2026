@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Unity.Netcode;
+using Unity.VisualScripting;
 
 public class DeplacementGrenouille : NetworkBehaviour
 {
@@ -91,4 +92,6 @@ public class DeplacementGrenouille : NetworkBehaviour
         float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg - 90f;
         transform.rotation = Quaternion.Euler(0, 0, angle);
     }
+
+
 }
