@@ -1,18 +1,30 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Unity.Netcode;
-using Unity.VisualScripting;
 
 public class DeplacementGrenouille : NetworkBehaviour
 {
-    [Header("Réglages du déplacement")]
-    [SerializeField] private float jumpDistance = 1.0f; // Distance de chaque bond (unité Unity)
-    [SerializeField] private SpriteRenderer spriteRenderer;
-    [SerializeField] private Vector2 posDepartClient;
-    [SerializeField] private Vector2 posDepartServeur;
-
+    [Header("Composants & Config")]
+    [SerializeField] private float distanceSaut = 1.0f; // Distance de chaque bond (unité Unity)
+    [SerializeField] private SpriteRenderer spriteRenderer; //Ref au renderer du sprite pour changer sa couleur
+    [SerializeField] private Vector2 posDepartClient; //Position de départ du client
+    [SerializeField] private Vector2 posDepartServeur; //Position de départ de l'host
+    private PlayerInput playerInput;
     // Synchronise la couleur sur tout le réseau(lecture pour tous, écriture serveur uniquement)
     private NetworkVariable<Color> playerColor = new NetworkVariable<Color>(Color.white);
+
+
+    /*
+     - Mémorisation du spriterenderer si vide
+     - Récupération du component playerInput
+    */
+    private void Awake()
+    {
+        if (spriteRenderer == null)
+            spriteRenderer = GetComponent<SpriteRenderer>();
+
+        playerInput = GetComponent<PlayerInput>();
+    }
 
     public override void OnNetworkSpawn()
     {
@@ -29,6 +41,27 @@ public class DeplacementGrenouille : NetworkBehaviour
         {
             SetupPlayer();
         }
+
+        // Non nécessaire sur Mac. Sur PC, il faut s'assurer d'activer le component et de lui
+        // attribuer le bon controScheme.
+        if (IsOwner)
+        {
+            // Active le composant et s'assure qu'il écoute les périphériques globaux
+            if (playerInput != null)
+            {
+                playerInput.enabled = true;
+                // Force l'Input System à associer le clavier/souris à ce PlayerInput sur le client
+                playerInput.SwitchCurrentControlScheme(Keyboard.current);
+            }
+        }
+        else
+        {
+            // Désactive les entrées pour les joueurs distants
+            if (playerInput != null)
+            {
+                playerInput.enabled = false;
+            }
+        }
     }
     public override void OnNetworkDespawn()
     {
@@ -36,29 +69,37 @@ public class DeplacementGrenouille : NetworkBehaviour
 
         playerColor.OnValueChanged -= OnChangeCouleur;
 
-        // Appliquer la couleur actuelle lors du spawn
-        spriteRenderer.color = playerColor.Value;
     }
 
+    // Exécutée lors du changement de la variable playerColor. Attribution de la couleur sur tous
+    // les clients connectés.
     private void OnChangeCouleur(Color ancienneCouleur, Color nouvelleCouleur)
     {
         spriteRenderer.color = nouvelleCouleur;
     }
 
+    /* Exécutée seulement sur le host (serveur)
+    Permet l'attribution d'une couleur différente pour chaque grenouille
+    */
     private void SetupPlayer()
     {
         // On détermine si c'est le joueur 1 (Host/Premier arrivé) ou le joueur 2
         // OwnerClientId == 0 est généralement le Host / premier joueur
-        bool isFirstPlayer = OwnerClientId == 0;
+
+        bool estPremierJoueur = OwnerClientId == 0;
 
         // 1. Positionnement côté serveur
-        transform.position = isFirstPlayer ? posDepartServeur : posDepartClient;
+        transform.position = estPremierJoueur ? posDepartServeur : posDepartClient;
 
         // 2. Attribution de la couleur côté serveur (sera répliquée chez tout le monde)
-        playerColor.Value = isFirstPlayer ? Color.green : Color.red;
+        playerColor.Value = estPremierJoueur ? Color.green : Color.red;
     }
 
 
+    /*  
+    Version authority = Owner.
+    Méthode appelée par le système d'Input lorsqu'une action de mouvement est détectée
+    */
     public void OnMove(InputValue value)
     {
         // Récupère la direction saisie (ZQSD / Flèches / D-Pad)
@@ -68,29 +109,32 @@ public class DeplacementGrenouille : NetworkBehaviour
         if (inputVector == Vector2.zero) return;
 
         // Isoler l'axe principal pour éviter les déplacements diagonaux
-        Vector2 moveDirection = Vector2.zero;
+        Vector2 directionMouvement = Vector2.zero;
 
+
+        // Vérifie si le mouvement horizontal est plus fort que le mouvement vertical
         if (Mathf.Abs(inputVector.x) > Mathf.Abs(inputVector.y))
         {
-            moveDirection = new Vector2(Mathf.Sign(inputVector.x), 0);
+            // Force le déplacement uniquement sur l'axe X (-1 pour Gauche, 1 pour Droite) et annule l'axe Y
+            directionMouvement = new Vector2(Mathf.Sign(inputVector.x), 0);
         }
         else
         {
-            moveDirection = new Vector2(0, Mathf.Sign(inputVector.y));
+            // Force le déplacement uniquement sur l'axe Y (-1 pour Bas, 1 pour Haut) et annule l'axe X
+            directionMouvement = new Vector2(0, Mathf.Sign(inputVector.y));
         }
 
         // 1. Orienter la grenouille vers la direction
-        RotateTowards(moveDirection);
+        TournerVers(directionMouvement);
 
-        // 2. Faire le bond d'un coup
-        transform.position += (Vector3)moveDirection * jumpDistance;
+        // 2. Faire le bond d'un coup. Notez que le déplacement se fait par le client lui même et non par le serveur
+        transform.position += (Vector3)directionMouvement * distanceSaut;
     }
 
-    private void RotateTowards(Vector2 direction)
+    private void TournerVers(Vector2 direction)
     {
-        // Calcule l'angle en degrés pour orienter le sprite (qui regarde vers le haut par défaut)
-        float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg - 90f;
-        transform.rotation = Quaternion.Euler(0, 0, angle);
+        // Oriente le haut du sprite (Vector2.up) vers la direction souhaitée
+        transform.rotation = Quaternion.FromToRotation(Vector2.up, direction);
     }
 
 

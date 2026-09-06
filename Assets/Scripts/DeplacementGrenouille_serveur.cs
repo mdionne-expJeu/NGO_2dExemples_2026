@@ -5,21 +5,19 @@ using UnityEngine.InputSystem;
 public class DeplacementGrenouille_serveur : NetworkBehaviour
 {
     [Header("Composants & Config")]
-    [SerializeField] private SpriteRenderer spriteRenderer;
-    [SerializeField] private float jumpDistance = 1.0f;
-
-    [Header("Positions de départ")]
-    [SerializeField] private Vector3 posDepartServeur = new Vector3(-2, 0, 0);
-    [SerializeField] private Vector3 posDepartClient = new Vector3(2, 0, 0);
-
+    [SerializeField] private float distanceSaut = 1.0f; // Distance de chaque bond (unité Unity)
+    [SerializeField] private SpriteRenderer spriteRenderer; //Ref au renderer du sprite pour changer sa couleur
+    [SerializeField] private Vector2 posDepartClient; //Position de départ du client
+    [SerializeField] private Vector2 posDepartServeur; //Position de départ de l'host
     private PlayerInput playerInput;
-    // Variable réseau pour synchroniser la couleur auprès de tous les clients
-    private readonly NetworkVariable<Color> playerColor = new NetworkVariable<Color>(
-        Color.white,
-        NetworkVariableReadPermission.Everyone,
-        NetworkVariableWritePermission.Server
-    );
+    // Synchronise la couleur sur tout le réseau
+    private NetworkVariable<Color> playerColor = new NetworkVariable<Color>(Color.white);
 
+
+    /*
+       - Mémorisation du spriterenderer si vide
+       - Récupération du component playerInput
+      */
     private void Awake()
     {
         if (spriteRenderer == null)
@@ -32,17 +30,20 @@ public class DeplacementGrenouille_serveur : NetworkBehaviour
     {
         base.OnNetworkSpawn();
 
-        // Réaction au changement de couleur sur chaque client
-        playerColor.OnValueChanged += OnColorChanged;
+        // Écouter les changements de couleur sur tous les clients
+        playerColor.OnValueChanged += OnChangeCouleur;
+
+        // Appliquer la couleur actuelle lors du spawn
         spriteRenderer.color = playerColor.Value;
 
-        // Seul le SERVEUR initialise la position et la couleur
+        // Seul le SERVEUR gère le placement initial et l'attribution des couleurs
         if (IsServer)
         {
             SetupPlayer();
         }
-        gameObject.name = OwnerClientId.ToString();
 
+        // Non nécessaire sur Mac. Sur PC, il faut s'assurer d'activer le component et de lui
+        // attribuer le bon controScheme.
         if (IsOwner)
         {
             // Active le composant et s'assure qu'il écoute les périphériques globaux
@@ -63,85 +64,77 @@ public class DeplacementGrenouille_serveur : NetworkBehaviour
         }
     }
 
-    public override void OnNetworkDespawn()
+    // Exécutée lors du changement de la variable playerColor. Attribution de la couleur sur tous
+    // les clients connectés.
+    private void OnChangeCouleur(Color ancienneCouleur, Color nouvelleCouleur)
     {
-        base.OnNetworkDespawn();
-        playerColor.OnValueChanged -= OnColorChanged;
+        spriteRenderer.color = nouvelleCouleur;
     }
 
+
+    /* Exécutée seulement sur le host (serveur)
+     Permet l'attribution d'une couleur différente pour chaque grenouille
+     */
     private void SetupPlayer()
     {
-        bool isFirstPlayer = OwnerClientId == 0;
+        // On détermine si c'est le joueur 1 (Host/Premier arrivé) ou le joueur 2
+        // OwnerClientId == 0 est généralement le Host / premier joueur
 
-        // Le serveur définit la position initiale et la couleur
-        transform.position = isFirstPlayer ? posDepartServeur : posDepartClient;
-        playerColor.Value = isFirstPlayer ? Color.green : Color.red;
+        bool estPremierJoueur = OwnerClientId == 0;
+
+        // 1. Positionnement côté serveur
+        transform.position = estPremierJoueur ? posDepartServeur : posDepartClient;
+
+        // 2. Attribution de la couleur côté serveur (sera répliquée chez tout le monde)
+        playerColor.Value = estPremierJoueur ? Color.green : Color.red;
     }
 
-    private void OnColorChanged(Color previousValue, Color newValue)
-    {
-        spriteRenderer.color = newValue;
-    }
 
-    // --- GESTION DES DÉPLACEMENTS (Input System) ---
 
+    /*  
+    Version authority = Server.
+    Méthode appelée par le système d'Input lorsqu'une action de mouvement est détectée
+    */
     public void OnMove(InputValue value)
     {
-        Debug.Log($"OnMove appelé sur {gameObject.name} (NetworkId: {NetworkObjectId}) | IsOwner: {IsOwner}");
-        Debug.Log("isOwner : " + IsOwner);
         // Seul le propriétaire de cette grenouille capte ses propres entrées clavier/manette
         if (!IsOwner) return;
-        Debug.Log("move");
+
+        // Récupère la direction saisie (ZQSD / Flèches / D-Pad)
+        // On ne traite que lorsqu'une touche vient d'être pressée
         Vector2 inputVector = value.Get<Vector2>();
         if (inputVector == Vector2.zero) return;
 
-        // Déterminer la direction principale (pas de diagonal)
-        Vector2 moveDirection = Vector2.zero;
+        // Déterminer la direction principale (pas de diagonale)
+        Vector2 directionMouvement = Vector2.zero;
+
+        // Vérifie si le mouvement horizontal est plus fort que le mouvement vertical
         if (Mathf.Abs(inputVector.x) > Mathf.Abs(inputVector.y))
         {
-            moveDirection = new Vector2(Mathf.Sign(inputVector.x), 0);
+            // Force le déplacement uniquement sur l'axe X (-1 pour Gauche, 1 pour Droite) et annule l'axe Y
+            directionMouvement = new Vector2(Mathf.Sign(inputVector.x), 0);
         }
         else
         {
-            moveDirection = new Vector2(0, Mathf.Sign(inputVector.y));
+            // Force le déplacement uniquement sur l'axe Y (-1 pour Bas, 1 pour Haut) et annule l'axe X
+            directionMouvement = new Vector2(0, Mathf.Sign(inputVector.y));
         }
-        Debug.Log("sendRPC");
-        // Demande au serveur d'exécuter le saut
-        MoveServerRpc(moveDirection);
+
+        // Demande au serveur d'exécuter le déplacement. Le serveur est le seul à pouvoir modifier le Transform de l'objet réseau.
+        DeplacementGrenouille_Rpc(directionMouvement);
     }
 
+    /*
+    Méthode exécutée côté serveur uniquement pour déplacer la grenouille.
+    */
     [Rpc(SendTo.Server)]
-    private void MoveServerRpc(Vector2 direction)
+    private void DeplacementGrenouille_Rpc(Vector2 direction)
     {
-        Debug.Log("On déplace la grenouille!");
-        // 1. Calcul de la rotation
-        float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg - 90f;
-        transform.rotation = Quaternion.Euler(0, 0, angle);
+        // Oriente le haut du sprite (Vector2.up) vers la direction souhaitée
+        transform.rotation = Quaternion.FromToRotation(Vector2.up, direction);
 
         // 2. Application du déplacement (Le serveur modifie le Transform)
-        transform.position += (Vector3)direction * jumpDistance;
+        transform.position += (Vector3)direction * distanceSaut;
     }
 
-    private void OnTriggerEnter2D(Collider2D collision)
-    {
-        if (!IsServer) return;
-
-        //Debug.Log("Trigger détecté côté serveur !");
-
-        if (collision.CompareTag("mouche"))
-        {
-            // Si la mouche est un NetworkObject, désaffichez-la ou despawnez-la via le réseau
-            NetworkObject netObj = collision.GetComponent<NetworkObject>();
-            if (netObj != null)
-            {
-                //Debug.Log("despawn de la mouche");
-                MouchesSpawner.instance.RetireListePos(collision.gameObject.transform.position);
-                netObj.Despawn(); // Approche recommandée en réseau
-            }
-            else
-            {
-                collision.gameObject.SetActive(false);
-            }
-        }
-    }
 }

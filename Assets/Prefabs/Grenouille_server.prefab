@@ -12,10 +12,11 @@ GameObject:
   - component: {fileID: 8833599035678073369}
   - component: {fileID: 2224762586762547087}
   - component: {fileID: 5667765479146312331}
-  - component: {fileID: -2608338674091858034}
+  - component: {fileID: 3468807181263765295}
   - component: {fileID: 7862381088576111071}
+  - component: {fileID: 1698364263825034296}
   m_Layer: 0
-  m_Name: Grenouille
+  m_Name: Grenouille_server
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -49,7 +50,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 199121252
+  GlobalObjectIdHash: 3996675395
   InScenePlacedSourceGlobalObjectIdHash: 199121252
   m_InScenePlacedDisabledByDefault: 0
   DeferredDespawnTick: 0
@@ -146,7 +147,7 @@ CircleCollider2D:
   m_CompositeOrder: 0
   m_Offset: {x: 0, y: -0}
   m_Radius: 0.6080377
---- !u!114 &-2608338674091858034
+--- !u!114 &3468807181263765295
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -159,10 +160,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DeplacementGrenouille_serveur
   ShowTopMostFoldoutHeaderGroup: 1
+  distanceSaut: 1
   spriteRenderer: {fileID: 1247122390515853474}
-  jumpDistance: 1
-  posDepartServeur: {x: 5, y: -3, z: 0}
-  posDepartClient: {x: -5, y: -3, z: 0}
+  posDepartClient: {x: -5, y: -3}
+  posDepartServeur: {x: 5, y: -3}
 --- !u!114 &7862381088576111071
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -281,6 +282,18 @@ MonoBehaviour:
   m_DefaultActionMap: Player
   m_SplitScreenIndex: -1
   m_Camera: {fileID: 0}
+--- !u!114 &1698364263825034296
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3150959446408455475}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fda158e3ebfaf90478ad8264c2f48902, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GrenouilleCollisions
 --- !u!1 &8614304358945665701
 GameObject:
   m_ObjectHideFlags: 0

@@ -36,7 +36,6 @@ public class GameManager : NetworkBehaviour //pour un network object
 
         if (NetworkManager.Singleton.ConnectedClientsList.Count >= 2)
         {
-            Debug.Log("2 joueurs, on commence!");
             NouvellePartie();
             partieEnCours = true;
         }
@@ -55,11 +54,10 @@ public class GameManager : NetworkBehaviour //pour un network object
         NetworkManager.Singleton.StartClient(); // Fonction du NetworkManager pour démarrer une partie comme client
     }
 
-    // Activation d'une nouvelle partie lorsque 2 joueurs. On appelle la fonction de la balle qui
-    // la place au milieu et qui lui donne une vélocité.
+    // Activation d'une nouvelle partie lorsque 2 joueurs. 
     public void NouvellePartie()
     {
-        Debug.Log("Nouvelle Partie du gamemanager");
+        // Déclenche l'action pour que les scripts abonnés puissent réagir au début de la partie
         OnDebutPartie?.Invoke();
     }
 
