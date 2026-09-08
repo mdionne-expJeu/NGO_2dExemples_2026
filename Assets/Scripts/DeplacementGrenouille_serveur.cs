@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -7,10 +8,13 @@ public class DeplacementGrenouille_serveur : NetworkBehaviour
     [Header("Composants & Config")]
     [SerializeField] private float distanceSaut = 1.0f; // Distance de chaque bond (unité Unity)
     [SerializeField] private SpriteRenderer spriteRenderer; //Ref au renderer du sprite pour changer sa couleur
-    [SerializeField] private Vector2 posDepartClient; //Position de départ du client
+    [SerializeField] private Vector2 posDepartClient1; //Position de départ du client
+    [SerializeField] private Vector2 posDepartClient2; //Position de départ du client
+    [SerializeField] private Vector2 posDepartClient3; //Position de départ du client
     [SerializeField] private Vector2 posDepartServeur; //Position de départ de l'host
     private PlayerInput playerInput;
     // Synchronise la couleur sur tout le réseau
+    [SerializeField] List<Color> listeCouleur =  new List<Color>();
     private NetworkVariable<Color> playerColor = new NetworkVariable<Color>(Color.white);
 
 
@@ -79,14 +83,32 @@ public class DeplacementGrenouille_serveur : NetworkBehaviour
     {
         // On détermine si c'est le joueur 1 (Host/Premier arrivé) ou le joueur 2
         // OwnerClientId == 0 est généralement le Host / premier joueur
+        Debug.Log("OwnerClientID = " + OwnerClientId);
+        playerColor.Value = listeCouleur[(int)OwnerClientId];
+        if (OwnerClientId == 0)
+        {
+            transform.position = posDepartServeur;
+        }
+        else if (OwnerClientId == 1)
+        {
+            transform.position = posDepartClient1;
+        }
+        else if (OwnerClientId == 2)
+        {
+            transform.position = posDepartClient2;
+        }
+        else if (OwnerClientId == 3)
+        {
+            transform.position = posDepartClient3;
+        }
 
         bool estPremierJoueur = OwnerClientId == 0;
 
         // 1. Positionnement côté serveur
-        transform.position = estPremierJoueur ? posDepartServeur : posDepartClient;
+        //transform.position = estPremierJoueur ? posDepartServeur : posDepartClient;
 
         // 2. Attribution de la couleur côté serveur (sera répliquée chez tout le monde)
-        playerColor.Value = estPremierJoueur ? Color.green : Color.red;
+        //playerColor.Value = estPremierJoueur ? Color.green : Color.red;
     }
 
 

@@ -1,4 +1,5 @@
 using UnityEngine;
+using TMPro;
 using Unity.Netcode; // namespace pour utiliser Netcode
 using UnityEngine.SceneManagement; // namespace pour la gestion des scènes
 using System;  // Nécessaire pour utiliser les Actions
@@ -10,6 +11,11 @@ public class GameManager : NetworkBehaviour //pour un network object
     public bool partieTerminee { private set; get; } // permet de savoir si une partie est terminée
     public Action OnDebutPartie; // Création d'une action auquel d'autres scripts pourront s'abonner.
 
+    [SerializeField] GameObject panelConnection;
+    [SerializeField] GameObject panelAttente;
+    [SerializeField] GameObject boutonLancement;
+
+    [SerializeField] TextMeshProUGUI texteAttente;
     // Création du singleton si nécessaire
     void Awake()
     {
@@ -23,6 +29,56 @@ public class GameManager : NetworkBehaviour //pour un network object
         }
     }
 
+    private void Start()
+    {
+        panelConnection.SetActive(true);
+        panelAttente.SetActive(false);
+    }
+
+    public override void OnNetworkSpawn()
+    {
+        base.OnNetworkSpawn();
+
+        NetworkManager.Singleton.OnClientConnectedCallback += OnNouveauClientConnecte;
+    }
+
+    public override void OnNetworkDespawn()
+    {
+        base.OnNetworkSpawn();
+
+        NetworkManager.Singleton.OnClientConnectedCallback -= OnNouveauClientConnecte;
+    }
+
+    /* Fonction qui sera appelée lors du callback OnClientConnectedCallback
+   Gestion de l'affichage et du début de la partie en fonction du nombre de clients connectés.
+   Si juste un client : c'est l'hôte... on affiche un panneau d'attente
+   Si deux client : on lance la partie
+   */
+    private void OnNouveauClientConnecte(ulong obj)
+    {
+        panelAttente.SetActive(true);
+        //if (!IsServer) return;
+        Debug.Log("OnNouveauClientConnecté");
+        if (NetworkManager.Singleton.ConnectedClients.Count == 1)
+        {
+            
+        }
+        else if (NetworkManager.Singleton.ConnectedClients.Count == 2)
+        {
+            texteAttente.text = "Il manque 2 joueurs pour commencer la partie";
+        }
+        else if (NetworkManager.Singleton.ConnectedClients.Count == 3)
+        {
+            texteAttente.text = "Il manque 1 joueurs pour commencer la partie";
+        }
+        else if (NetworkManager.Singleton.ConnectedClients.Count == 4)
+        {
+            texteAttente.text = "L'hôte du jeu peut lancer la partie";
+            if (IsServer) boutonLancement.SetActive(true); 
+        }
+    }
+
+
 
 
 
@@ -34,11 +90,11 @@ public class GameManager : NetworkBehaviour //pour un network object
         if (!IsHost) return;
         if (partieEnCours) return;
 
-        if (NetworkManager.Singleton.ConnectedClientsList.Count >= 2)
+        /*if (NetworkManager.Singleton.ConnectedClientsList.Count >= 2)
         {
             NouvellePartie();
             partieEnCours = true;
-        }
+        }*/
     }
 
 

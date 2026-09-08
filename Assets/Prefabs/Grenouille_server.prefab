@@ -162,8 +162,15 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   distanceSaut: 1
   spriteRenderer: {fileID: 1247122390515853474}
-  posDepartClient: {x: -5, y: -3}
+  posDepartClient1: {x: -4, y: -3}
+  posDepartClient2: {x: -1, y: -3}
+  posDepartClient3: {x: 2, y: -3}
   posDepartServeur: {x: 5, y: -3}
+  listeCouleur:
+  - {r: 1, g: 1, b: 1, a: 1}
+  - {r: 1, g: 0, b: 0, a: 1}
+  - {r: 1, g: 0, b: 0.8844191, a: 1}
+  - {r: 0, g: 0, b: 1, a: 1}
 --- !u!114 &7862381088576111071
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -294,6 +301,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fda158e3ebfaf90478ad8264c2f48902, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GrenouilleCollisions
+  ShowTopMostFoldoutHeaderGroup: 1
 --- !u!1 &8614304358945665701
 GameObject:
   m_ObjectHideFlags: 0
