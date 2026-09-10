@@ -7,23 +7,23 @@ using UnityEngine.SceneManagement;
 */
 public class LoadGame : MonoBehaviour
 {
-   public static LoadGame instance;
+    public static LoadGame instance;
 
-   void Awake()
-   {
-       if (instance == null)
-       {
-           instance = this;
-       }
-       else
-       {
-           Destroy(gameObject);
-       }
-   }
-   void Start()
-   {
-       SceneManager.LoadScene("JeuGrenouilles");
-   }
+    void Awake()
+    {
+        if (instance == null)
+        {
+            instance = this;
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    }
+    void Start()
+    {
+        SceneManager.LoadScene("JeuGrenouillesBillots");
+    }
 
 }
 
